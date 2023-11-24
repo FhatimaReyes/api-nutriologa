@@ -1,3 +1,0 @@
-uvicorn
-sqlalchemy
-psycopg2
