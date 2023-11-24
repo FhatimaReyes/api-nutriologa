@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 # 
 
 
-COPY app-agua /code
+COPY app /code
 
 # 
 
