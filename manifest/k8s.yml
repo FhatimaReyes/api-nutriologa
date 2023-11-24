@@ -17,8 +17,9 @@ spec:
       - name: {model_name}-container
         #image: gcr.io/tensorflow-serving/resnet 
         image: docker.io/{docker_user}/{model_name}:{github.sha}
+        imagePullPolicy: Always
         ports:
-        - containerPort: 80
+        - containerPort: 8000
 ---
 apiVersion: v1
 kind: Service
@@ -28,8 +29,8 @@ metadata:
   name: {model_name}-service
 spec:
   ports:
-  - port: 80
-    targetPort: 80
+  - port: 8000
+    targetPort: 8000
   selector:
     app: {model_name}-server
   type: LoadBalancer
