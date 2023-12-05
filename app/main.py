@@ -10,12 +10,18 @@ app = FastAPI()
 app.title = "Nutriologa - API"
 app.version = "2.0"
 
+# Configurar CORS
+origins = [
+    "http://localhost:4200",
+    # Otros orígenes permitidos, si es necesario
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["POST", "GET", "PUT", "DELETE"],
-    allow_headers=['*'],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
         
 app.include_router(routes.paciente_route.router)
