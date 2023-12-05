@@ -51,6 +51,7 @@ def eliminar_paciente(id_paciente: int, db: Session = Depends(get_db)):
     db_paciente = get_paciente_by_id(db, id_paciente=id_paciente)
     if db_paciente is None:
         raise HTTPException(status_code=404, detail="El ID del paciente no existe")
-    delete_paciente(db, db_paciente)
-    return db_paciente
+    else:
+        db_paciente = delete_paciente(db, db_paciente)
+        return db_paciente
 

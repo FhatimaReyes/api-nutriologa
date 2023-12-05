@@ -37,3 +37,4 @@ def update_paciente(db: Session, paciente: models, paciente_update:PacienteUpdat
 def delete_paciente(db: Session, paciente: models):
     db.delete(paciente)
     db.commit()
+    return paciente
