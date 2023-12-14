@@ -1,8 +1,9 @@
+from ast import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from config.database import SessionLocal
 from schemas.schemas import MedidasMusculos, MedidasMusculosCreate, MedidasMusculosUpdate
-from crud.medidas_musculos_crud import create_medidas_musculos, get_medidas_musculos, get_medidas_musculos_by_id, update_medidas_musculos, delete_medidas_musculos
+from crud.medidas_musculos_crud import create_medidas_musculos, get_medidas_musculos, get_medidas_musculos_by_id, update_medidas_musculos, delete_medidas_musculos, get_medidas_musculos_by_id_paciente
 
 router = APIRouter()
 
@@ -28,6 +29,13 @@ def obtener_medidas_musculos_por_id(id_musculos: int, db: Session = Depends(get_
     db_medida_musculo = get_medidas_musculos_by_id(db, id_musculos=id_musculos)
     if db_medida_musculo is None:
         raise HTTPException(status_code=404, detail="El ID de las medidas de músculo no existe")
+    return db_medida_musculo
+
+@router.get("/medidas_musculos/paciente/{id_paciente}", response_model=list[MedidasMusculos])
+def obtener_medidas_musculos_por_id_paciente(id_paciente: int, db: Session = Depends(get_db)):
+    db_medida_musculo = get_medidas_musculos_by_id_paciente(db, id_paciente=id_paciente)
+    if db_medida_musculo is None:
+        raise HTTPException(status_code=404, detail="El ID del paciente no existe")
     return db_medida_musculo
 
 @router.put("/medidas_musculos/{id_musculos}", response_model=MedidasMusculos)

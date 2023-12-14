@@ -13,10 +13,10 @@ class Paciente(Base):
     fecha_nacimiento = Column(Date)
     ocupacion = Column(String)
     
-    expedientes = relationship("Expediente", back_populates="pacientes")
-    consultas = relationship("Consulta", back_populates="pacientes")
-    medidas_musculos = relationship("MedidasMusculos", back_populates="pacientes")
-    medidas_huesos = relationship("MedidasHuesos", back_populates="pacientes")
+    expedientes = relationship("Expediente", back_populates="pacientes",  cascade="all, delete-orphan")
+    consultas = relationship("Consulta", back_populates="pacientes", cascade="all, delete-orphan")
+    medidas_musculos = relationship("MedidasMusculos", back_populates="pacientes", cascade="all, delete-orphan")
+    medidas_huesos = relationship("MedidasHuesos", back_populates="pacientes", cascade="all, delete-orphan")
     
     
     

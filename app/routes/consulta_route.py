@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from config.database import SessionLocal
 from schemas.schemas import Consulta, ConsultaCreate, ConsultaUpdate
-from crud.consulta_crud import create_consulta, get_consultas, get_consulta_by_id, update_consulta, delete_consulta
+from crud.consulta_crud import create_consulta, get_consultas, get_consulta_by_id, update_consulta, delete_consulta, get_consulta_by_id_paciente
 
 router = APIRouter()
 
@@ -28,6 +28,13 @@ def obtener_consulta_por_id(id_consulta: int, db: Session = Depends(get_db)):
     db_consulta = get_consulta_by_id(db, id_consulta=id_consulta)
     if db_consulta is None:
         raise HTTPException(status_code=404, detail="El ID de la consulta no existe")
+    return db_consulta
+
+@router.get("/consultas/paciente/{id_paciente}", response_model=list[Consulta])
+def obtener_consulta_por_id_paciente(id_paciente: int, db: Session = Depends(get_db)):
+    db_consulta = get_consulta_by_id_paciente(db, id_paciente=id_paciente)
+    if db_consulta is None:
+        raise HTTPException(status_code=404, detail="El ID del paciente no existe")
     return db_consulta
 
 @router.put("/consultas/{id_consulta}", response_model=Consulta)

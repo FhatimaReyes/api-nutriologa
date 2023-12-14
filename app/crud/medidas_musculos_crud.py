@@ -19,6 +19,9 @@ def create_medidas_musculos(db: Session, medidas_musculos: MedidasMusculosCreate
 
 def get_medidas_musculos_by_id(db: Session, id_musculos: int):
     return db.query(models).filter(models.id_musculos == id_musculos).first()
+
+def get_medidas_musculos_by_id_paciente(db: Session, id_paciente: int):
+    return db.query(models).filter(models.id_paciente == id_paciente).all()
     
 def get_medidas_musculos(db: Session, skip=0, limit: int = 100):
     return db.query(models).offset(skip).limit(limit).all()

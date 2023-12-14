@@ -20,6 +20,9 @@ def create_medidas_huesos(db: Session, medidas_huesos: MedidasHuesosCreate):
 
 def get_medidas_huesos_by_id(db: Session, id_huesos: int):
     return db.query(models).filter(models.id_huesos == id_huesos).first()
+
+def get_medidas_huesos_by_id_paciente(db: Session, id_paciente: int):
+    return db.query(models).filter(models.id_paciente == id_paciente).all()
     
 def get_medidas_huesos(db: Session, skip=0, limit: int = 100):
     return db.query(models).offset(skip).limit(limit).all()

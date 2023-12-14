@@ -20,6 +20,9 @@ def create_consulta(db: Session, consulta: ConsultaCreate):
 def get_consulta_by_id(db: Session, id_consulta: int):
     return db.query(models).filter(models.id_consulta == id_consulta).first()
 
+def get_consulta_by_id_paciente(db: Session, id_paciente: int):
+    return db.query(models).filter(models.id_paciente == id_paciente).all()
+
 def get_consultas(db: Session, skip=0, limit: int = 100):
     return db.query(models).offset(skip).limit(limit).all()
 
