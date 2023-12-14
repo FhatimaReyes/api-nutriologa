@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from config.database import SessionLocal
 from schemas.schemas import Expediente, ExpedienteCreate, ExpedienteUpdate
-from crud.expediente_crud import create_expediente, get_expedientes, get_expediente_by_id, update_expediente, delete_expediente
+from crud.expediente_crud import create_expediente, get_expedientes, get_expediente_by_id, update_expediente, delete_expediente, get_expediente_by_id_paciente
 
 
 router = APIRouter()
@@ -29,6 +29,13 @@ def obtener_expediente_por_id(id_expediente: int, db: Session = Depends(get_db))
     db_expediente = get_expediente_by_id(db, id_expediente=id_expediente)
     if db_expediente is None:
         raise HTTPException(status_code=404, detail="El ID del expediente no existe")
+    return db_expediente
+
+@router.get("/expedientes/paciente/{id_paciente}", response_model=Expediente)
+def obtener_expediente_por_id_paciente(id_paciente: int, db: Session = Depends(get_db)):
+    db_expediente = get_expediente_by_id_paciente(db, id_paciente=id_paciente)
+    if db_expediente is None:
+        raise HTTPException(status_code=404, detail="No se encontró ningún expediente para el ID del paciente")
     return db_expediente
 
 @router.put("/expedientes/{id_expediente}", response_model=Expediente)

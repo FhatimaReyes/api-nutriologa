@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from config.database import SessionLocal
 from schemas.schemas import ExpedienteCreate, ExpedienteUpdate
 from models.models import Expediente as models
+from models.models import Paciente as paciente_model
 
 def get_db():
     db = SessionLocal()
@@ -19,6 +20,9 @@ def create_expediente(db: Session, expediente: ExpedienteCreate):
 
 def get_expediente_by_id(db: Session, id_expediente: int):
     return db.query(models).filter(models.id_expediente == id_expediente).first()
+
+def get_expediente_by_id_paciente(db: Session, id_paciente: int):
+    return db.query(models).filter(models.id_paciente == id_paciente).first()
 
 def get_expedientes(db: Session, skip=0, limit: int = 100):
     return db.query(models).offset(skip).limit(limit).all()
