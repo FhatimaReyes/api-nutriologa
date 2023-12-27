@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from config.database import SessionLocal
 from schemas.schemas import Consulta, ConsultaCreate, ConsultaUpdate
 from crud.consulta_crud import create_consulta, get_consultas, get_consulta_by_id, update_consulta, delete_consulta, get_consulta_by_id_paciente
+from crud.paciente_crud import get_paciente_by_id
 
 router = APIRouter()
 
@@ -15,6 +16,9 @@ def get_db():
 
 @router.post("/consultas/", response_model=Consulta)
 def agregar_consulta(consulta: ConsultaCreate, db: Session = Depends(get_db)):
+    paciente = get_paciente_by_id(db, id_paciente=consulta.id_paciente)
+    if paciente is None:
+        raise HTTPException(status_code=404, detail="El ID del paciente no existe")
     db_consulta = create_consulta(db=db, consulta=consulta)
     return db_consulta
 

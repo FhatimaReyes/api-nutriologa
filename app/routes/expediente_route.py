@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from config.database import SessionLocal
 from schemas.schemas import Expediente, ExpedienteCreate, ExpedienteUpdate
 from crud.expediente_crud import create_expediente, get_expedientes, get_expediente_by_id, update_expediente, delete_expediente, get_expediente_by_id_paciente
-
+from crud.paciente_crud import get_paciente_by_id
 
 router = APIRouter()
 
@@ -16,6 +16,9 @@ def get_db():
 
 @router.post("/expedientes/", response_model=Expediente)
 def agregar_expediente(expediente: ExpedienteCreate, db: Session = Depends(get_db)):
+    db_paciente = get_paciente_by_id(db, id_paciente=expediente.id_paciente)
+    if db_paciente is None:
+        raise HTTPException(status_code=404, detail="El ID del paciente no existe")
     db_expediente = create_expediente(db=db, expediente=expediente)
     return db_expediente
 

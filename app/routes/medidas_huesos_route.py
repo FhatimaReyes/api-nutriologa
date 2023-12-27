@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from config.database import SessionLocal
 from schemas.schemas import MedidasHuesos, MedidasHuesosCreate, MedidasHuesosUpdate
 from crud.medidas_huesos_crud import create_medidas_huesos, get_medidas_huesos, get_medidas_huesos_by_id, update_medidas_huesos, delete_medidas_huesos, get_medidas_huesos_by_id_paciente
+from crud.paciente_crud import get_paciente_by_id
 
 router = APIRouter()
 
@@ -15,6 +16,9 @@ def get_db():
 
 @router.post("/medidas_huesos/", response_model=MedidasHuesos)
 def agregar_medidas_huesos(medidas_huesos: MedidasHuesosCreate, db: Session = Depends(get_db)):
+    paciente = get_paciente_by_id(db, id_paciente=medidas_huesos.id_paciente)
+    if paciente is None:
+        raise HTTPException(status_code=404, detail="El ID del paciente no existe")
     db_medida_hueso = create_medidas_huesos(db=db, medidas_huesos=medidas_huesos)
     return db_medida_hueso
 

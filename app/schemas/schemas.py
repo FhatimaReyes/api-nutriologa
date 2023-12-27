@@ -84,6 +84,7 @@ class MedidasMusculosBase(BaseModel):
     gemelo: float
     torax: float
     gluteo: float
+    fecha: date
     id_paciente: int
     
 class MedidasMusculosCreate(MedidasMusculosBase):
@@ -109,7 +110,8 @@ class MedidasHuesosBase(BaseModel):
     humero: int
     carpo: int
     femur: int
-    tobillo: int 
+    tobillo: int
+    fecha : date 
     id_paciente: int
     
 class MedidasHuesosCreate(MedidasHuesosBase):

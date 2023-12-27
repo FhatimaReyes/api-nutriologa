@@ -55,6 +55,7 @@ class MedidasMusculos(Base):
     gemelo = Column(Float)
     torax = Column(Float)
     gluteo = Column(Float)
+    fecha = Column(Date)
     id_paciente  = Column(Integer, ForeignKey('pacientes.id_paciente'))
     
     pacientes = relationship("Paciente", back_populates="medidas_musculos")
@@ -73,6 +74,7 @@ class MedidasHuesos(Base):
     carpo = Column(Integer)
     femur = Column(Integer)
     tobillo = Column(Integer)
+    fecha = Column(Date)
     id_paciente = Column(Integer, ForeignKey('pacientes.id_paciente'))
     
     pacientes = relationship("Paciente", back_populates="medidas_huesos")
