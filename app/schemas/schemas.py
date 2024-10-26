@@ -126,3 +126,35 @@ class MedidasHuesos(MedidasHuesosBase):
     class Config:
         from_attributes = True
     
+    
+### Fhir_Patient
+
+class FhirPatientBase(BaseModel):
+    id_paciente: int | None=None
+    
+class FhirPatientCreate(FhirPatientBase):
+    pass
+
+class FhirPatientUpdate(PacienteBase):
+    pass
+
+class FhirPatient(FhirPatientBase):
+    id: int | None=None
+    
+    class Config:
+        from_attributes = True
+        
+### Fhir_Expedient
+
+class FhirExpedienteBase(BaseModel):
+    id_paciente: int | None=None
+    id_patient: int | None=None
+    
+class FhirExpedienteCreate(FhirExpedienteBase):
+    pass
+
+class FhirExpedienteUpdate(FhirExpedienteBase):
+    pass
+
+class FhirExpediente(FhirExpedienteBase):
+    id_patient: int | None=None
