@@ -148,12 +148,9 @@ class FhirPatient(FhirPatientBase):
 
 class FhirExpedienteBase(BaseModel):
     id_paciente: int | None=None
-    id_patient: int | None=None
+    #id_patient: int | None=None
     
 class FhirExpedienteCreate(FhirExpedienteBase):
-    pass
-
-class FhirExpedienteUpdate(FhirExpedienteBase):
     pass
 
 class FhirExpediente(FhirExpedienteBase):

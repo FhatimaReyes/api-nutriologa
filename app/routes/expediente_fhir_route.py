@@ -6,7 +6,6 @@ from crud.paciente_crud import get_paciente_by_id
 from schemas.schemas import FhirExpedienteCreate
 from fhir.resources.bundle import Bundle
 from fhir.resources.observation import Observation
-from fhir.resources.allergyintolerance import AllergyIntolerance
 from fhir.resources.condition import Condition
 from fhir.resources.procedure import Procedure
 from fhir.resources.medicationstatement import MedicationStatement
@@ -31,14 +30,20 @@ def agregar_expediente_fhir(expediente: FhirExpedienteCreate, db: Session = Depe
     if db_pacienteExp is None:
         raise HTTPException(status_code=404, detail="El paciente no existe o no cuenta con un expediente, verifique")
     
-    response = requests.get(f"{FHIR_SERVER_URL}/Patient/{expediente.id_patient}") 
-    if response.status_code != 200:
-        raise HTTPException(status_code=404, detail="Patient no encontrado en el servidor")
     
     paciente = get_paciente_by_id(db, id_paciente=expediente.id_paciente)
     nombre_paciente = paciente.nombre
     
-    fhir_patient_data = response.json()
+    response = requests.get(f"{FHIR_SERVER_URL}/Patient", params={"name": nombre_paciente})
+    if response.status_code != 200:
+        raise HTTPException(status_code=404, detail="Patient no encontrado en el servidor")
+    
+    fhir_data = response.json()
+    if not fhir_data.get("entry"):
+        raise HTTPException(status_code=404, detail="No se encontraron coincidencias para el paciente en el servidor FHIR")
+    
+    paciente_fhir = fhir_data["entry"][0]["resource"]
+    fhir_id_patient = paciente_fhir["id"]
     
     def nombre_coincide(nombre_paciente: str, fhir_patient_data: dict) -> bool:
         fhir_name = fhir_patient_data.get("name", [{}])[0]
@@ -47,25 +52,21 @@ def agregar_expediente_fhir(expediente: FhirExpedienteCreate, db: Session = Depe
     
         return nombre_paciente.lower().strip() == nombre_patient.lower().strip()
     
-    if not nombre_coincide(nombre_paciente, fhir_patient_data):
+    if not nombre_coincide(nombre_paciente, paciente_fhir):
         raise HTTPException(status_code=400, detail="El ID de FHIR no corresponde al paciente en el sistema.")
      
-    #Asegurarse de que 'datos' es un string e intentar deserializarlo
     if isinstance(db_pacienteExp.datos, str):
         datos = json.loads(db_pacienteExp.datos)
     else:
         raise ValueError("`datos` no es un string válido")
 
-    # Imprimir la estructura del JSON para ver su contenido
-    #print(f"Estructura del JSON `datos`: {datos}")
-
-    antecedentes_medicos = datos.get("antecedentesMedicos", {}) ###METODO PARA PODER VER LOS CAMPOS DE UN OBJETO JSON, DENTRO DE UN JSON
-    motivoSalud = antecedentes_medicos.get("motivo")
+    antecedentes_medicos = datos.get("antecedentesMedicos", {}) 
+    motivo = antecedentes_medicos.get("motivo")
     saludActual = antecedentes_medicos.get("saludActual")
     
     antecedentes_patologicos = datos.get("antecedentesPatologicos", {})
-    enfermedadesInfecciosas = antecedentes_patologicos.get("enfermedadesInfecciosas", []) ###ACCEDER A LAS LISTAS
-    texto_enfermedadesInfecciosas = ", ".join(enfermedadesInfecciosas) ### SE CONVIERTE EN TEXTO EL ARREGLO COMPLETO (LISTA)
+    enfermedadesInfecciosas = antecedentes_patologicos.get("enfermedadesInfecciosas", [])
+    texto_enfermedadesInfecciosas = ", ".join(enfermedadesInfecciosas)
     otrosInfecciosos = antecedentes_patologicos.get("otrosInfecciosos")
     
     enfermedadesCronicas = antecedentes_patologicos.get("enfermedadesCronicas", [])
@@ -137,204 +138,112 @@ def agregar_expediente_fhir(expediente: FhirExpedienteCreate, db: Session = Depe
     cirugiaPeso = controlPeso.get("cirugiaPeso")
     consumoAgua = controlPeso.get("consumoAgua")
         
-    print(f"Motivo: {motivoSalud}")
-    print(f"Salud Actual: {saludActual}")
-    print(f"Enfermedades Infecciosas:{enfermedadesInfecciosas}")
-    print(f"Otros Infecciosos: {otrosInfecciosos}")
-    print(f"Enfermedades Crónicas:{enfermedadesCronicas}")
-    print(f"Otros Crónicos: {otrosCronicos}")
-    print(f"Consumo: {consumoSustancias}")
-    print(f"Otras sustancias: {otrosConsumos}")
-    print(f"Alergías: {alergias}")
-    print(f"Cirugías: {cirugias}")
-    print(f"Obstetricos: {opcionesObstetricos}") 
-    print(f"Periodos: {periodosMenstruales}") 
-    print(f"Anticonceptivos: {usoAnticonceptivos}") 
-    print(f"Cuales: {nombreAnticonceptivos}") 
-    print(f"Tiempo de uso: {tiempoUso}") 
-    print(f"Climaterio: {condicionClimaterio}")
-    print(f"Tratamiento: {opcionesTratamiento}")
-    print(f"Otros tratamientos: {otrosTratamientos}")
-    print(f"Alopatas: {alopatas}")
-    print(f"Cambios en el apetito: {cambiosApetito}")
-    print(f"Boca seca: {bocaSeca}")
-    print(f"Nauseas: {nauseas}")
-    print(f"Hiperglucemia: {hiperglucemia}")
-    print(f"Sintomas actuales (opciones): {opcionesSintomas}")
-    print(f"Dietas: {dietas}")
-    print(f"Trastornos: {trastornos}")
-    print(f"Actividad fisica: {actividadFisica}")
-    print(f"Tipo: {tipoEjercicio}")
-    print(f"Frecuencia: {frecuenciaEjercicio}")
-    print(f"Comidas al día: {comidasDia}")
-    print(f"Quien prepara la comida: {preparacionComidas}")
-    print(f"Tipo de apetito: {tipoApetito}")
-    print(f"Tratamiento de control de peso: {opcionControlPeso}")
-    print(f"Razon del tratamiento: {razonTratamiento}")
-    print(f"Resultados esperados del tratamiento: {resultados}")
-    print(f"Uso de medicamentos para bajar de peso: {medicamentos}")
-    print(f"Nombre de los medicamentos: {nombreMedicamentos}")
-    print(f"Cambio de peso: {cambioPeso}")
-    print(f"Cirugia para perder peso: {cirugiaPeso}")
-    print(f"Consumo de agua: {consumoAgua}") 
+    # print(f"Motivo: {motivo}")
+    # print(f"Salud Actual: {saludActual}")
+    # print(f"Enfermedades Infecciosas:{enfermedadesInfecciosas}")
+    # print(f"Otros Infecciosos: {otrosInfecciosos}")
+    # print(f"Enfermedades Crónicas:{enfermedadesCronicas}")
+    # print(f"Otros Crónicos: {otrosCronicos}")
+    # print(f"Consumo: {consumoSustancias}")
+    # print(f"Otras sustancias: {otrosConsumos}")
+    # print(f"Alergías: {alergias}")
+    # print(f"Cirugías: {cirugias}")
+    # print(f"Obstetricos: {opcionesObstetricos}") 
+    # print(f"Periodos: {periodosMenstruales}") 
+    # print(f"Anticonceptivos: {usoAnticonceptivos}") 
+    # print(f"Cuales: {nombreAnticonceptivos}") 
+    # print(f"Tiempo de uso: {tiempoUso}") 
+    # print(f"Climaterio: {condicionClimaterio}")
+    # print(f"Tratamiento: {opcionesTratamiento}")
+    # print(f"Otros tratamientos: {otrosTratamientos}")
+    # print(f"Alopatas: {alopatas}")
+    # print(f"Cambios en el apetito: {cambiosApetito}")
+    # print(f"Boca seca: {bocaSeca}")
+    # print(f"Nauseas: {nauseas}")
+    # print(f"Hiperglucemia: {hiperglucemia}")
+    # print(f"Sintomas actuales (opciones): {opcionesSintomas}")
+    # print(f"Dietas: {dietas}")
+    # print(f"Trastornos: {trastornos}")
+    # print(f"Actividad fisica: {actividadFisica}")
+    # print(f"Tipo: {tipoEjercicio}")
+    # print(f"Frecuencia: {frecuenciaEjercicio}")
+    # print(f"Comidas al día: {comidasDia}")
+    # print(f"Quien prepara la comida: {preparacionComidas}")
+    # print(f"Tipo de apetito: {tipoApetito}")
+    # print(f"Tratamiento de control de peso: {opcionControlPeso}")
+    # print(f"Razon del tratamiento: {razonTratamiento}")
+    # print(f"Resultados esperados del tratamiento: {resultados}")
+    # print(f"Uso de medicamentos para bajar de peso: {medicamentos}")
+    # print(f"Nombre de los medicamentos: {nombreMedicamentos}")
+    # print(f"Cambio de peso: {cambioPeso}")
+    # print(f"Cirugia para perder peso: {cirugiaPeso}")
+    # print(f"Consumo de agua: {consumoAgua}") 
     
     try:
-        id_patient = expediente.id_patient
+        id_patient = fhir_id_patient
 
         #Recursos
         motivo_consulta = Observation.construct(
-            status="final",
-            # code={
-            #     "coding": [
-            #         {
-            #             "system": "http://loinc.org",
-            #             "code": "29299-5",  # Código LOINC para Motivo de consulta
-            #             "display": "Reason for visit",
-            #         }
-            #     ]
-            # },
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=motivoSalud,
+            valueString=(f"Motivo de consulta: {motivo}"),
         )
 
         salud_actual = Observation.construct(
-            status="final",
-            # code={
-            #     "coding": [
-            #         {
-            #             "system": "http://loinc.org",
-            #             "code": "11323-3",  # Código LOINC para Estado de salud general
-            #             "display": "Health status",
-            #         }
-            #     ]
-            # },
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=saludActual
+            valueString=(f"Salud actual: {saludActual}")
         )
 
         enfermedades_infecciosas = Condition.construct(
-            #clinicalStatus=CodeableConcept.construct(
-            #    coding=[
-            #        Coding.construct(
-            #            system="http://terminology.hl7.org/CodeSystem/condition-clinical",
-            #            code="active",
-            #        )
-            #    ]
-            #),
-            #verificationStatus=CodeableConcept.construct(
-            #    coding=[
-            #        Coding.construct(
-            #            system="http://terminology.hl7.org/CodeSystem/condition-verification",
-            #            code="confirmed",
-            #        )
-            #    ]
-            #),
-            #category=[
-            #    CodeableConcept.construct(
-            #        coding=[
-            #            Coding.construct(
-            #                system="http://terminology.hl7.org/CodeSystem/condition-category",
-            #                code="encounter-diagnosis",
-            #                display="Encounter Diagnosis",
-            #            )
-            #        ]
-            #    )
-            #],
             code=CodeableConcept.construct(
-                text=texto_enfermedadesInfecciosas,
-                #coding=[
-                #    Coding.construct(
-                #        system="http://loinc.org",
-                #        code="29299-5",
-                #        display="Reason for visit",
-                #    )
-                #   ]
+                text=(f"Enfermedades infeccionas: {texto_enfermedadesInfecciosas}"),
             ),
             subject=Reference.construct(reference=f"Patient/{id_patient}")
-            #note=[{"text": "Tiene chorro pq tomó agua de los bebederos de la universidad"}],
         )
         
         otros_infecciosos = Condition.construct(
             code=CodeableConcept.construct(
-                text=otrosInfecciosos
+                text=(f"Otras enfermedades infecciosas: {otrosInfecciosos}")
             ),
             subject=Reference.construct(reference=f"Patient/{id_patient}")
         )
         
         enfermedades_cronicas = Condition.construct(
              code=CodeableConcept.construct(
-                text=texto_enfermedadesCronicas
+                text=(f"Enfermedades crónicas: {texto_enfermedadesCronicas}")
             ),
             subject=Reference.construct(reference=f"Patient/{id_patient}")
         )
         
         otros_cronicos = Condition.construct(
             code=CodeableConcept.construct(
-                text=otrosCronicos
+                text=(f"Otras enfermedades crónicas: {otrosCronicos}")
             ),
             subject=Reference.construct(reference=f"Patient/{id_patient}")
         )
         
         consumo_sustancias = Condition.construct( ###CAMBIAR A OBSERVATION
             code=CodeableConcept.construct(
-                text=texto_consumoSustancias
+                text=(f"Consumo de sustancias: {texto_consumoSustancias}")
             ),
             subject=Reference.construct(reference=f"Patient/{id_patient}")
         )
         
         otros_consumos = Condition.construct( ###CAMBIAR A OBSERVATION
             code = CodeableConcept.construct(
-                text=otrosConsumos
+                text=(f"Otras sustancias: {otrosConsumos}")
             ),
             subject=Reference.construct(reference=f"Patient/{id_patient}")
         )
         
-        alergias_resource = AllergyIntolerance.construct(
-            #clinicalStatus="active",
-            #verificationStatus="confirmed",
-            #type="allergy", 
-            #category=["food"],
-            #criticality="low",
-            code=CodeableConcept.construct(
-                #coding=[
-                #    Coding.construct(
-                #        system="http://snomed.info/sct",
-                #        code="91935009",
-                #        display="Allergy to peanuts",
-                #    )
-                #]
-                text=alergias
-            ),
-            subject=Reference.construct(reference=f"Patient/{id_patient}")
-            #reaction=[
-            #    {
-            #        "manifestation": [
-            #            {
-            #                "coding": [
-            #                    {
-            #                        "system": "http://snomed.info/sct",
-            #                        "code": "247472004",
-            #                        "display": "Hives",
-            #                    }
-            #                ]
-            #            }
-            #        ],
-            #        "severity": "severe",
-            #    }
-            #],
+        alergias_resource = Observation.construct(
+            subject=Reference.construct(reference=f"Patient/{id_patient}"),
+            valueString=(f"Alergias: {alergias}"),
         )
         
         cirugias_resource = Procedure.construct(
             status="completed",
             code=CodeableConcept.construct(
-            #    coding=[
-            #        Coding.construct(
-            #            system="http://snomed.info/sct",
-            #            code="387713003",
-            #            display="Bariatric surgery",
-            #        )
-            #    ]
-            text=cirugias
+            text=(f"Cirugías: {cirugias}")
             ),
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
             reportedBoolean=True,
@@ -342,42 +251,42 @@ def agregar_expediente_fhir(expediente: FhirExpedienteCreate, db: Session = Depe
         
         gineco_obstetricos = Condition.construct(
             code=CodeableConcept.construct(
-                text=texto_opcionesObstetricos
+                text=(f"Antecedentes gineco-obstétricos: {texto_opcionesObstetricos}")
             ),
             subject=Reference.construct(reference=f"Patient/{id_patient}")
         )
         
         periodos_menstruales = Condition.construct(
             code=CodeableConcept.construct(
-                text=periodosMenstruales
+                text=(f"Períodos menstruales: {periodosMenstruales}")
             ),
             subject=Reference.construct(reference=f"Patient/{id_patient}")
         )
         
         uso_anticonceptivos = Condition.construct(
             code=CodeableConcept.construct(
-                text=usoAnticonceptivos
+                text=(f"Uso de anticonceptivos: {usoAnticonceptivos}")
             ),
             subject=Reference.construct(reference=f"Patient/{id_patient}")
         )
         
         nombre_anticonceptivos = Condition.construct(
             code=CodeableConcept.construct(
-                text=nombreAnticonceptivos
+                text=(f"¿Cuáles anticonceptivos?: {nombreAnticonceptivos}")
             ),
             subject=Reference.construct(reference=f"Patient/{id_patient}")
         )
         
         tiempo_uso = Condition.construct(
             code=CodeableConcept.construct(
-                text=tiempoUso
+                text=(f"Tiempo usando anticonceptivos: {tiempoUso}")
             ),
             subject=Reference.construct(reference=f"Patient/{id_patient}")
         )
         
         climaterio = Condition.construct(
             code=CodeableConcept.construct(
-                text=condicionClimaterio
+                text=(f"Climaterio: {condicionClimaterio}")
             ),
             subject=Reference.construct(reference=f"Patient/{id_patient}")
         )
@@ -386,7 +295,7 @@ def agregar_expediente_fhir(expediente: FhirExpedienteCreate, db: Session = Depe
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
             dosage=[
                 {
-                    "text": texto_opcionesTratamiento
+                    "text": (f"Tratamiento: {texto_opcionesTratamiento}")
                 }
             ]
         )
@@ -395,7 +304,7 @@ def agregar_expediente_fhir(expediente: FhirExpedienteCreate, db: Session = Depe
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
             dosage=[
                 {
-                    "text": otrosTratamientos
+                    "text": (f"Otros tratamientos: {otrosTratamientos}")
                 }
             ]
         )
@@ -404,155 +313,116 @@ def agregar_expediente_fhir(expediente: FhirExpedienteCreate, db: Session = Depe
            subject=Reference.construct(reference=f"Patient/{id_patient}"),
             dosage=[
                 {
-                    "text": alopatas
+                    "text": (f"Medicamentos alópatas: {alopatas}")
                 }
             ]
         )
-         
-        # tratamiento = MedicationStatement.construct(
-        #     status="active",
-        #     medicationCodeableConcept=CodeableConcept.construct(
-        #         coding=[
-        #             Coding.construct(
-        #                 system="http://www.nlm.nih.gov/research/umls/rxnorm",
-        #                 code="104376",
-        #                 display="PIÑALIM",
-        #             )
-        #         ]
-        #     ),
-        #     subject={"reference": f"Patient/{id_patient}"},
-        #     dosage=[
-        #         {
-        #             "text": texto_opcionesTratamiento,
-        #             "asNeededBoolean": False,
-        #             "route": {
-        #                 "coding": [
-        #                     {
-        #                         "system": "http://snomed.info/sct",
-        #                         "code": "26643006",
-        #                         "display": "Oral route",
-        #                     }
-        #                 ]
-        #             },
-        #             "doseAndRate": [
-        #                 {
-        #                     "doseQuantity": {
-        #                         "value": 1,
-        #                         "unit": "tablet",
-        #                         "system": "http://unitsofmeasure.org",
-        #                         "code": "tablet",
-        #                     }
-        #                 }
-        #             ],
-        #         }
-        #     ],
-        # )
-            
+             
         cambios_apetito = Observation.construct(
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=cambiosApetito,
+            valueString=(f"Cambios en el apetito: {cambiosApetito}"),
         )
         
         boca_seca = Observation.construct(
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=bocaSeca,
+            valueString=(f"Boca seca: {bocaSeca}"),
         )
         
         efecto_nauseas = Observation.construct(
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=nauseas,
+            valueString=(f"Nauseas: {nauseas}"),
         )
         
         efecto_hiperglucemia = Observation.construct(
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=hiperglucemia,
+            valueString=(f"Hiperglucemia: {hiperglucemia}"),
         )
         
         sintomas_actuales = Observation.construct(
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=texto_opcionesSintomas,
+            valueString=(f"Síntomas actuales: {texto_opcionesSintomas}"),
         )
         
         nutricion_dietas = Observation.construct(
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=dietas,
+            valueString=(f"Dietas o tratamientos realizados anteriormente: {dietas}"),
         )
         
         nutricion_trastornos = Condition.construct(
             code=CodeableConcept.construct(
-                text=trastornos
+                text=(f"Trastornos de alimentación: {trastornos}")
             ),
             subject=Reference.construct(reference=f"Patient/{id_patient}")
         )
         
         actividad_fisica = Observation.construct(
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=actividadFisica,
+            valueString=(f"Actividad fisica: {actividadFisica}"),
         )
         
         tipo_ejercicio = Observation.construct(
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=tipoEjercicio,
+            valueString=(f"Tipo de ejercicio: {tipoEjercicio}"),
         )
         
         frecuencia_ejercicio = Observation.construct(
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=frecuenciaEjercicio,
+            valueString=(f"Frecuencia de ejercicio: {frecuenciaEjercicio}"),
         )
         
         comidas_dia = Observation.construct(
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=comidasDia,
+            valueString=(f"¿Cuántas comidas hace al día?: {comidasDia}"),
         )
         
         preparacion_comidas = Observation.construct(
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=preparacionComidas,
+            valueString=(f"¿Quién prepara sus alimentos?: {preparacionComidas}"),
         )
         
         tipo_apetito = Observation.construct(
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=tipoApetito,
+            valueString=(f"Apetito: {tipoApetito}"),
         )
         
         control_peso = Observation.construct(
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=opcionControlPeso,
+            valueString=(f"¿Ha llevado un tratamiento para control de peso?: {opcionControlPeso}"),
         )
         
         razon_tratamiento = Observation.construct(
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=razonTratamiento,
+            valueString=(f"Razón del tratamiendo de control de peso: {razonTratamiento}"),
         )
         
         resultados_tratamiento = Observation.construct(
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=resultados,
+            valueString=(f"¿Obtuvo los resultados esperados del control de peso?: {resultados}"),
         )
         
         medicamentos_peso = Observation.construct(
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=medicamentos,
+            valueString=(f"¿Ha utilizado medicamentos para bajar de peso?: {medicamentos}"),
         )
         
         nombre_medicamentos = MedicationStatement.construct(
            subject=Reference.construct(reference=f"Patient/{id_patient}"),
             dosage=[
                 {
-                    "text": nombreMedicamentos
+                    "text": (f"Nombre de medicamentos para bajar de peso: {nombreMedicamentos}")
                 }
             ]
         )
         
         cambio_peso = Observation.construct(
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=cambioPeso,
+            valueString=(f"¿Cómo ha fluctuado su peso a lo largo de su vida?: {cambioPeso}"),
         )
         
         cirugia_peso = Procedure.construct(
             status="completed",
             code=CodeableConcept.construct(
-            text=cirugiaPeso
+            text=(f"¿Se ha sometido a alguna cirugía para perder peso?: {cirugiaPeso}")
             ),
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
             reportedBoolean=True,
@@ -560,10 +430,9 @@ def agregar_expediente_fhir(expediente: FhirExpedienteCreate, db: Session = Depe
         
         consumo_agua = Observation.construct(
             subject=Reference.construct(reference=f"Patient/{id_patient}"),
-            valueString=consumoAgua,
+            valueString=(f"Consumo regular de agua simple al día: {consumoAgua}"),
         )
         
-        # Crear el Bundle FHIR de tipo transaction
         bundle = Bundle.construct(
             type="transaction",
             entry=[
@@ -601,7 +470,7 @@ def agregar_expediente_fhir(expediente: FhirExpedienteCreate, db: Session = Depe
                 },
                 {
                     "resource": alergias_resource,
-                    "request": {"method": "POST", "url": "AllergyIntolerance"}
+                    "request": {"method": "POST", "url": "Observation"}
                 },
                 {
                     "resource": cirugias_resource,
@@ -730,10 +599,8 @@ def agregar_expediente_fhir(expediente: FhirExpedienteCreate, db: Session = Depe
             ],
         )
 
-        # Convertir el Bundle a JSON
         bundle_json = bundle.json()
 
-        # Enviar el Bundle al servidor HAPI FHIR
         response = requests.post(
             FHIR_SERVER_URL,
             headers={"Content-Type": "application/fhir+json"},
